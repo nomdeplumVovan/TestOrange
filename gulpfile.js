@@ -4,6 +4,10 @@ const pug = require('gulp-pug');
 const sass = require('gulp-sass');
 const spritesmith = require('gulp.spritesmith');
 const rimraf = require('rimraf');
+const rename = require('gulp-rename');
+const sourcemaps = require('gulp-sourcemaps');
+const autoprefixer = require('gulp-autoprefixer');
+const concat = require('gulp-concat');
 
 // Static server
 gulp.task('server', function () {
@@ -20,7 +24,7 @@ gulp.task('server', function () {
 //  pug-compile
 
 gulp.task('template:compile', function buildHTML() {
-  return gulp.src('source/template/*.pug')
+  return gulp.src('source/template/index.pug')
     .pipe(pug({
       pretty: true
     }))
@@ -30,9 +34,12 @@ gulp.task('template:compile', function buildHTML() {
 //  styles compile
 
 gulp.task('styles:compile', function () {
-  return gulp.src('source/styles/*.scss')
-    .pipe(sass().on('error', sass.logError))
-    .pipe(gulp.dest('.build/css'));
+  return gulp.src('source/styles/main.scss')
+    .pipe(sass({
+      outputStyle: 'compressed'
+    }).on('error', sass.logError))
+    .pipe(rename('main.min.css'))
+    .pipe(gulp.dest('build/css'));
 });
 
 //  sprite
@@ -60,14 +67,14 @@ gulp.task('clean', function del(cb) {
 
 gulp.task('copy:fonts', function () {
   return gulp.src('./source/fonts/**/*.*')
-    .pipe(gulp.dest('builds/fonts'));
+    .pipe(gulp.dest('build/fonts'));
 })
 
 // copy images
 
 gulp.task('copy:images', function () {
   return gulp.src('./source/images/**/*.*')
-    .pipe(gulp.dest('builds/images'));
+    .pipe(gulp.dest('build/images'));
 })
 
 // copy
@@ -81,10 +88,24 @@ gulp.task('watch', function () {
   gulp.watch('source/styles/**/*.scss', gulp.series('styles:compile'));
 })
 
+// prefixer, sourcemaps, concat
+
+gulp.task('prefixer', () =>
+  gulp.src('source/styles/main.scss')
+  .pipe(sourcemaps.init())
+  .pipe(autoprefixer({
+    browsers: ['last 2 versions'],
+    cascade: false
+  }))
+  .pipe(concat('all.css'))
+  .pipe(sourcemaps.write('.'))
+  .pipe(gulp.dest('dist'))
+);
+
 // default
 
 gulp.task('default', gulp.series(
   'clean',
-  gulp.parallel('template:compile', 'styles:compile', 'sprite', 'copy'),
+  gulp.parallel('template:compile', 'styles:compile', 'prefixer', 'sprite', 'copy'),
   gulp.parallel('watch', 'server')
 ));
